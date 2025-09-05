@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Solitaire</title>
+    <title>Casino Society Solitaire</title>
     <style>
         body { margin: 0; background: #2F2F2F; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #gameContainer { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; position: relative; }
@@ -213,7 +213,7 @@
 
         // Get card stack at position
         function getCardStackAt(x, y) {
-            x = x / scaleFactor; y = y / scaleFactor;
+            x = x / scaleFactor; y = y / scaleFactor; // Adjust for scale
             if (waste.length > 0 && x >= 150 && x <= 150 + cardWidth && y >= 50 && y <= 50 + cardHeight) {
                 return { cards: [waste[waste.length - 1]], source: 'waste' };
             }
@@ -281,12 +281,15 @@
             if (target && target.cards[0].faceUp) {
                 draggingCards = target.cards.map(card => ({
                     card,
-                    x: x - cardWidth / 2,
-                    y: y - cardHeight / 2
+                    x: x,
+                    y: y
                 }));
                 dragSource = target;
-                dragOffsetX = x - ((50 + (target.pile || 0) * (cardWidth + 20)) * scaleFactor);
-                dragOffsetY = y - (target.source === 'waste' ? 50 * scaleFactor : 200 * scaleFactor + (target.index) * (cardHeight / 3));
+                // Adjust drag offset to account for scaled position and cursor alignment
+                const baseX = (50 + (target.pile || (target.source === 'waste' ? 2 : 0)) * (cardWidth + 20)) * scaleFactor;
+                const baseY = target.source === 'waste' ? 50 * scaleFactor : 200 * scaleFactor + (target.index) * (cardHeight / 3);
+                dragOffsetX = x - baseX;
+                dragOffsetY = y - baseY;
             }
             render();
         }
