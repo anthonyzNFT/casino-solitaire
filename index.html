@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Casino Society Solitaire</title>
+    <title>Simple Solitaire</title>
     <style>
         body { margin: 0; background: #2F2F2F; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #gameContainer { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; position: relative; }
@@ -213,8 +213,10 @@
 
         // Get card stack at position
         function getCardStackAt(x, y) {
-            x = x / scaleFactor; y = y / scaleFactor; // Adjust for scale
+            x = x / scaleFactor; y = y / scaleFactor; // Normalize to unscaled coordinates
+            console.log(`Checking click at: x=${x}, y=${y}`); // Debug log
             if (waste.length > 0 && x >= 150 && x <= 150 + cardWidth && y >= 50 && y <= 50 + cardHeight) {
+                console.log('Detected waste card');
                 return { cards: [waste[waste.length - 1]], source: 'waste' };
             }
             for (let i = 0; i < 7; i++) {
@@ -223,6 +225,7 @@
                 for (let j = tableau[i].length - 1; j >= 0; j--) {
                     if (tableau[i][j].faceUp && x >= 50 + i * (cardWidth + 20) && x <= 50 + i * (cardWidth + 20) + cardWidth && y >= ty && y <= ty + cardHeight) {
                         stack.push(tableau[i][j]);
+                        console.log(`Detected tableau card at pile ${i}, index ${j}`);
                     } else if (stack.length > 0) break;
                     ty += cardHeight / 3;
                 }
@@ -230,6 +233,7 @@
                     return { cards: stack, source: 'tableau', pile: i, index: tableau[i].length - stack.length };
                 }
             }
+            console.log('No card detected');
             return null;
         }
 
@@ -268,6 +272,7 @@
             const rect = canvas.getBoundingClientRect();
             const x = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - rect.left;
             const y = (e.type.includes('touch') ? e.touches[0].clientY : e.clientY) - rect.top;
+            console.log(`Start drag at: x=${x}, y=${y}, scale=${scaleFactor}`); // Debug log
 
             if (x >= 50 * scaleFactor && x <= 50 * scaleFactor + cardWidth && y >= 50 * scaleFactor && y <= 50 * scaleFactor + cardHeight && stock.length > 0) {
                 let card = stock.pop();
@@ -279,17 +284,18 @@
 
             let target = getCardStackAt(x, y);
             if (target && target.cards[0].faceUp) {
+                console.log(`Card detected at: pile=${target.pile}, index=${target.index}, source=${target.source}`);
                 draggingCards = target.cards.map(card => ({
                     card,
                     x: x,
                     y: y
                 }));
                 dragSource = target;
-                // Adjust drag offset to account for scaled position and cursor alignment
+                // Recalculate offset based on scaled card position
                 const baseX = (50 + (target.pile || (target.source === 'waste' ? 2 : 0)) * (cardWidth + 20)) * scaleFactor;
                 const baseY = target.source === 'waste' ? 50 * scaleFactor : 200 * scaleFactor + (target.index) * (cardHeight / 3);
-                dragOffsetX = x - baseX;
-                dragOffsetY = y - baseY;
+                dragOffsetX = x - baseX + cardWidth / 2; // Offset from center
+                dragOffsetY = y - baseY + cardHeight / 2; // Offset from center
             }
             render();
         }
