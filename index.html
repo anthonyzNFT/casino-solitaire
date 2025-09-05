@@ -7,7 +7,7 @@
     <style>
         body { margin: 0; background: #2F2F2F; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         #gameContainer { flex: 1; display: flex; justify-content: center; align-items: center; width: 100%; position: relative; }
-        canvas { border: 1px solid #D9C2A7; max-width: 90vw; max-height: 90vh; touch-action: manipulation; }
+        canvas { border: 1px solid #D9C2A7; touch-action: manipulation; }
         header { background: #4A704A; color: #D9C2A7; text-align: center; padding: 1.5vw; font-size: 5vw; font-family: Arial, sans-serif; text-shadow: 0 0 5px #FFD700; }
         footer { background: #2F2F2F; color: #D9C2A7; text-align: center; padding: 1vw; font-size: 2vw; font-family: Arial, sans-serif; }
         #settingsOverlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); color: #D9C2A7; z-index: 10; }
@@ -18,8 +18,11 @@
             footer { font-size: 2.5vw; padding: 1.5vw; }
             #settingsContent { padding: 3vw; }
         }
-        @media (min-width: 1200px) {
-            canvas { max-width: 800px; max-height: 600px; }
+        @media (min-width: 601px) and (max-width: 1024px) {
+            canvas { max-width: 90vw; max-height: 80vh; }
+        }
+        @media (min-width: 1025px) {
+            canvas { max-width: 1200px; max-height: 800px; }
         }
     </style>
 </head>
@@ -42,10 +45,14 @@
         const settingsOverlay = document.getElementById('settingsOverlay');
         const largeCardsCheckbox = document.getElementById('largeCards');
 
-        // Global card dimensions
-        let cardWidth = 70; // Default values
-        let cardHeight = 100; // Default values
+        // Global card dimensions (unscaled)
+        let baseCardWidth = 70;
+        let baseCardHeight = 100;
         let scaleFactor = 1; // For large cards option
+
+        // Adjusted dimensions
+        let cardWidth = baseCardWidth;
+        let cardHeight = baseCardHeight;
 
         // Card properties
         const suits = ['♠', '♥', '♣', '♦'];
@@ -66,12 +73,31 @@
 
         // Dynamic canvas sizing
         function resizeCanvas() {
-            const width = window.innerWidth * 0.9;
-            const height = window.innerHeight * 0.7;
-            canvas.width = Math.min(width, 800 * scaleFactor);
-            canvas.height = Math.min(height, 600 * scaleFactor);
-            cardWidth = canvas.width / 12;
+            let maxWidth = window.innerWidth * 0.9;
+            let maxHeight = window.innerHeight * 0.7;
+
+            // Adjust max sizes based on device type
+            if (window.innerWidth <= 600) {
+                maxWidth = window.innerWidth * 0.95;
+                maxHeight = window.innerHeight * 0.7;
+            } else if (window.innerWidth <= 1024) {
+                maxWidth = window.innerWidth * 0.9;
+                maxHeight = window.innerHeight * 0.8;
+            } else {
+                maxWidth = 1200;
+                maxHeight = 800;
+            }
+
+            canvas.width = maxWidth;
+            canvas.height = maxHeight;
+
+            // Calculate scaleFactor based on large cards option
+            scaleFactor = largeCardsCheckbox.checked ? 1.5 : 1;
+
+            // Apply scale to card dimensions
+            cardWidth = baseCardWidth * scaleFactor * (canvas.width / 800); // Normalize to base canvas size
             cardHeight = cardWidth * 1.428;
+
             render();
         }
 
@@ -126,7 +152,7 @@
             }
         }
 
-        // Draw epic card with centered logo and corner ranks
+        // Draw epic card with centered logo and corner ranks (no shadows on logo)
         function drawCard(x, y, card, highlight = false) {
             if (!card.faceUp) {
                 drawCardBack(x, y);
@@ -144,19 +170,14 @@
             ctx.lineWidth = highlight ? 4 : 2;
             ctx.strokeRect(x, y, cardWidth, cardHeight);
 
-            // Centered epic logo (suit symbol)
-            ctx.save();
+            // Centered epic logo (suit symbol, no shadow)
             ctx.fillStyle = colors[card.suit];
             ctx.font = `${cardWidth / 2.5}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             const centerX = x + cardWidth / 2;
             const centerY = y + cardHeight / 2;
-            ctx.shadowBlur = 5;
-            ctx.shadowColor = '#000000';
             ctx.fillText(card.suit, centerX, centerY);
-            ctx.shadowBlur = 0;
-            ctx.restore();
 
             // Top left rank
             ctx.fillStyle = '#222222'; // Dark metallic look
@@ -183,29 +204,35 @@
             animationFrameId = requestAnimationFrame(() => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                if (stock.length > 0) drawCard(50 * scaleFactor, 50 * scaleFactor, stock[stock.length - 1]);
-                if (waste.length > 0) drawCard(150 * scaleFactor, 50 * scaleFactor, waste[waste.length - 1]);
+                // Draw stock
+                if (stock.length > 0) drawCard(50, 50, stock[stock.length - 1]);
 
+                // Draw waste
+                if (waste.length > 0) drawCard(150, 50, waste[waste.length - 1]);
+
+                // Draw foundations
                 for (let i = 0; i < 4; i++) {
                     if (foundations[i].length > 0) {
-                        drawCard((300 + i * (cardWidth + 20)) * scaleFactor, 50 * scaleFactor, foundations[i][foundations[i].length - 1]);
+                        drawCard(300 + i * (baseCardWidth + 20), 50, foundations[i][foundations[i].length - 1]);
                     } else {
                         ctx.strokeStyle = '#4A704A';
-                        ctx.strokeRect((300 + i * (cardWidth + 20)) * scaleFactor, 50 * scaleFactor, cardWidth, cardHeight);
+                        ctx.strokeRect(300 + i * (baseCardWidth + 20), 50, cardWidth, cardHeight);
                     }
                 }
 
+                // Draw tableau
                 for (let i = 0; i < 7; i++) {
-                    let y = 200 * scaleFactor;
+                    let y = 200;
                     for (let card of tableau[i]) {
-                        drawCard((50 + i * (cardWidth + 20)) * scaleFactor, y, card);
-                        y += cardHeight / 3;
+                        drawCard(50 + i * (baseCardWidth + 20), y, card);
+                        y += baseCardHeight / 3;
                     }
                 }
 
+                // Draw dragging cards
                 if (draggingCards.length > 0) {
                     draggingCards.forEach((card, idx) => {
-                        drawCard(card.x, card.y + idx * (cardHeight / 6), card.card, true);
+                        drawCard(card.x, card.y + idx * (baseCardHeight / 6), card.card, true);
                     });
                 }
             });
@@ -213,27 +240,29 @@
 
         // Get card stack at position
         function getCardStackAt(x, y) {
-            x = x / scaleFactor; y = y / scaleFactor; // Normalize to unscaled coordinates
-            console.log(`Checking click at: x=${x}, y=${y}`); // Debug log
-            if (waste.length > 0 && x >= 150 && x <= 150 + cardWidth && y >= 50 && y <= 50 + cardHeight) {
-                console.log('Detected waste card');
+            // Normalize coordinates to unscaled space
+            x = x / scaleFactor;
+            y = y / scaleFactor;
+
+            // Check waste
+            if (waste.length > 0 && x >= 150 && x <= 150 + baseCardWidth && y >= 50 && y <= 50 + baseCardHeight) {
                 return { cards: [waste[waste.length - 1]], source: 'waste' };
             }
+
+            // Check tableau
             for (let i = 0; i < 7; i++) {
                 let ty = 200;
                 let stack = [];
                 for (let j = tableau[i].length - 1; j >= 0; j--) {
-                    if (tableau[i][j].faceUp && x >= 50 + i * (cardWidth + 20) && x <= 50 + i * (cardWidth + 20) + cardWidth && y >= ty && y <= ty + cardHeight) {
+                    if (tableau[i][j].faceUp && x >= 50 + i * (baseCardWidth + 20) && x <= 50 + i * (baseCardWidth + 20) + baseCardWidth && y >= ty && y <= ty + baseCardHeight) {
                         stack.push(tableau[i][j]);
-                        console.log(`Detected tableau card at pile ${i}, index ${j}`);
                     } else if (stack.length > 0) break;
-                    ty += cardHeight / 3;
+                    ty += baseCardHeight / 3;
                 }
                 if (stack.length > 0) {
                     return { cards: stack, source: 'tableau', pile: i, index: tableau[i].length - stack.length };
                 }
             }
-            console.log('No card detected');
             return null;
         }
 
@@ -272,8 +301,8 @@
             const rect = canvas.getBoundingClientRect();
             const x = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - rect.left;
             const y = (e.type.includes('touch') ? e.touches[0].clientY : e.clientY) - rect.top;
-            console.log(`Start drag at: x=${x}, y=${y}, scale=${scaleFactor}`); // Debug log
 
+            // Check stock click
             if (x >= 50 * scaleFactor && x <= 50 * scaleFactor + cardWidth && y >= 50 * scaleFactor && y <= 50 * scaleFactor + cardHeight && stock.length > 0) {
                 let card = stock.pop();
                 card.faceUp = true;
@@ -284,18 +313,19 @@
 
             let target = getCardStackAt(x, y);
             if (target && target.cards[0].faceUp) {
-                console.log(`Card detected at: pile=${target.pile}, index=${target.index}, source=${target.source}`);
                 draggingCards = target.cards.map(card => ({
                     card,
                     x: x,
                     y: y
                 }));
                 dragSource = target;
-                // Recalculate offset based on scaled card position
-                const baseX = (50 + (target.pile || (target.source === 'waste' ? 2 : 0)) * (cardWidth + 20)) * scaleFactor;
-                const baseY = target.source === 'waste' ? 50 * scaleFactor : 200 * scaleFactor + (target.index) * (cardHeight / 3);
-                dragOffsetX = x - baseX + cardWidth / 2; // Offset from center
-                dragOffsetY = y - baseY + cardHeight / 2; // Offset from center
+                // Calculate offset using unscaled positions
+                const unscaledX = x / scaleFactor;
+                const unscaledY = y / scaleFactor;
+                const baseX = 50 + (target.pile || (target.source === 'waste' ? 2 : 0)) * (baseCardWidth + 20);
+                const baseY = target.source === 'waste' ? 50 : 200 + (target.index) * (baseCardHeight / 3);
+                dragOffsetX = unscaledX - baseX;
+                dragOffsetY = unscaledY - baseY;
             }
             render();
         }
@@ -307,8 +337,8 @@
                 const x = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - rect.left;
                 const y = (e.type.includes('touch') ? e.touches[0].clientY : e.clientY) - rect.top;
                 draggingCards.forEach(card => {
-                    card.x = x - dragOffsetX;
-                    card.y = y - dragOffsetY;
+                    card.x = x - dragOffsetX * scaleFactor; // Adjust offset with scale
+                    card.y = y - dragOffsetY * scaleFactor;
                 });
                 render();
             }
@@ -323,9 +353,11 @@
 
                 let moved = false;
 
-                // Check foundations
+                // Check foundations (unscaled)
+                const unscaledX = x / scaleFactor;
+                const unscaledY = y / scaleFactor;
                 for (let i = 0; i < 4; i++) {
-                    if (x >= (300 + i * (cardWidth + 20)) * scaleFactor && x <= (300 + i * (cardWidth + 20)) * scaleFactor + cardWidth && y >= 50 * scaleFactor && y <= 50 * scaleFactor + cardHeight) {
+                    if (unscaledX >= 300 + i * (baseCardWidth + 20) && unscaledX <= 300 + i * (baseCardWidth + 20) + baseCardWidth && unscaledY >= 50 && unscaledY <= 50 + baseCardHeight) {
                         if (isValidMove(draggingCards[0].card, i, 'foundation')) {
                             foundations[i].push(draggingCards[0].card);
                             if (dragSource.source === 'waste') waste.pop();
@@ -343,11 +375,11 @@
                     }
                 }
 
-                // Check tableau
+                // Check tableau (unscaled)
                 if (!moved) {
                     for (let i = 0; i < 7; i++) {
-                        let ty = tableau[i].length === 0 ? 200 * scaleFactor : 200 * scaleFactor + (tableau[i].length - 1) * (cardHeight / 3);
-                        if (x >= (50 + i * (cardWidth + 20)) * scaleFactor && x <= (50 + i * (cardWidth + 20)) * scaleFactor + cardWidth && y >= ty && y <= ty + cardHeight + (cardHeight / 3)) {
+                        let ty = tableau[i].length === 0 ? 200 : 200 + (tableau[i].length - 1) * (baseCardHeight / 3);
+                        if (unscaledX >= 50 + i * (baseCardWidth + 20) && unscaledX <= 50 + i * (baseCardWidth + 20) + baseCardWidth && unscaledY >= ty && unscaledY <= ty + baseCardHeight + (baseCardHeight / 3)) {
                             if (isValidMove(draggingCards[0].card, i, 'tableau')) {
                                 draggingCards.forEach(card => tableau[i].push(card.card));
                                 if (dragSource.source === 'waste') waste.pop();
