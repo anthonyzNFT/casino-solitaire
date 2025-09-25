@@ -10,9 +10,14 @@
 <body>
     <canvas id="gameCanvas" role="region" aria-label="Solitaire Game Board"></canvas>
     <div id="aria-announcer" role="alert" aria-live="polite" style="position: absolute; left: -9999px;"></div>
+    <div id="debug" style="color: red; position: absolute; top: 10px; left: 10px;"></div>
     <script type="module">
         import { init } from './game.js';
-        init();
+        try {
+            init();
+        } catch (e) {
+            document.getElementById('debug').textContent = `Error: ${e.message}`;
+        }
     </script>
 </body>
 </html>
