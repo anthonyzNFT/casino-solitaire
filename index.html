@@ -27,10 +27,6 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Global card dimensions
-        let cardWidth = 70; // Default values
-        let cardHeight = 100; // Default values
-
         // Dynamic canvas sizing
         function resizeCanvas() {
             canvas.width = window.innerWidth * 0.9;
@@ -43,11 +39,13 @@
         resizeCanvas();
 
         // Card properties
+        let cardWidth = canvas.width / 12;
+        let cardHeight = cardWidth * 1.428;
         const suits = ['♠', '♥', '♣', '♦'];
         const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         const colors = { '♠': '#D9C2A7', '♣': '#D9C2A7', '♥': '#D9C2A7', '♦': '#D9C2A7' };
 
-        // Game state (initialized before use)
+        // Game state
         let deck = [];
         let tableau = [[], [], [], [], [], [], []];
         let stock = [];
@@ -99,7 +97,7 @@
             for (let i = 0; i < 5; i++) {
                 for (let j = 0; j < 5; j++) {
                     ctx.beginPath();
-                    ctx.arc(x + 10 + j * (cardWidth / 7), y + 10 + i * (cardHeight / 6), 3, 0, Math.PI * 2);
+                    ctx.arc(x + 10 + j * 12, y + 10 + i * 18, 3, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
