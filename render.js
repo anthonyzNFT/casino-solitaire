@@ -1,4 +1,4 @@
-import { COLORS, SUITS, RANKS, SUIT_SYMBOLS, cardWidth, cardHeight, scale, tableau, foundations, stock, waste, ctx } from './game.js';
+import { COLORS, SUITS, RANKS, SUIT_SYMBOLS, cardWidth, cardHeight, scale, tableau, foundations, stock, waste, ctx, selectedCards } from './game.js';
 
 export function renderBoard() {
     const gradient = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
